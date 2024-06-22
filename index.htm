@@ -14,13 +14,6 @@
         // Replace with your server URL
         const SERVER_URL = "https://paypalserver.vercel.app";
 
-        // Function to fetch client token from server
-        async function fetchClientToken() {
-            const response = await fetch(`${SERVER_URL}/client_token`);
-            const data = await response.json();
-            return data.clientId;
-        }
-
         // Function to send messages to Flutter
         function sendMessageToFlutter(message) {
             if (window.flutter_inappwebview) {
@@ -42,7 +35,7 @@
             onApprove: async function(data, actions) {
                 const order = await actions.order.capture();
                 console.log('Order captured:', order);
-                
+
                 // Send order ID to server for processing
                 const response = await fetch(`${SERVER_URL}/checkout`, {
                     method: 'POST',
@@ -55,19 +48,19 @@
                 });
                 const result = await response.json();
                 console.log('Server response:', result);
-                
+
                 if (result.success) {
                     alert('Payment successful! Next billing date: ' + result.nextBillingDate);
-                    sendMessageToFlutter({ status: 'success', nextBillingDate: result.nextBillingDate });
+                    sendMessageToFlutter(JSON.stringify({ status: 'success', nextBillingDate: result.nextBillingDate }));
                 } else {
                     alert('Payment failed: ' + result.error);
-                    sendMessageToFlutter({ status: 'failure', error: result.error });
+                    sendMessageToFlutter(JSON.stringify({ status: 'failure', error: result.error }));
                 }
             },
             onError: function(err) {
                 console.error('PayPal error:', err);
                 alert('An error occurred during the transaction.');
-                sendMessageToFlutter({ status: 'error', error: err.toString() });
+                sendMessageToFlutter(JSON.stringify({ status: 'error', error: err.toString() }));
             }
         }).render('#paypal-button-container');
     </script>
