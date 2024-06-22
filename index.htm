@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal Integration</title>
+    <script src="https://www.paypal.com/sdk/js?client-id=ASr-GgV6hNF9M_QqkXswue7HNctkVyHZscapjYTQO59AaTceomyBN8BndAmJakKRa3TozzhUrViQs4e6"></script>
+    
+</head>
+<body>
+    <h1>Arbitrex Payment</h1>
+    <div id="paypal-button-container"></div>
+
+    <script>
+        // Replace with your server URL
+        const SERVER_URL = "http://localhost:3000";
+
+        // Function to fetch client token from server
+        async function fetchClientToken() {
+            const response = await fetch(`${SERVER_URL}/client_token`);
+            const data = await response.json();
+            return data.clientId;
+        }
+
+        // PayPal button rendering and actions
+        paypal.Buttons({
+            createOrder: function(data, actions) {
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: '15.00'
+                        }
+                    }]
+                });
+            },
+            onApprove: async function(data, actions) {
+                const order = await actions.order.capture();
+                console.log('Order captured:', order);
+                
+                // Send order ID to server for processing
+                const response = await fetch(`${SERVER_URL}/checkout`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        payment_method_nonce: order.id
+                    })
+                });
+                const result = await response.json();
+                console.log('Server response:', result);
+                
+                if (result.success) {
+                    alert('Payment successful! Next billing date: ' + result.nextBillingDate);
+                } else {
+                    alert('Payment failed: ' + result.error);
+                }
+            },
+            onError: function(err) {
+                console.error('PayPal error:', err);
+                alert('An error occurred during the transaction.');
+            }
+        }).render('#paypal-button-container');
+    </script>
+</body>
+</html>
+
+
