@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PayPal Integration</title>
     <script src="https://www.paypal.com/sdk/js?client-id=ASr-GgV6hNF9M_QqkXswue7HNctkVyHZscapjYTQO59AaTceomyBN8BndAmJakKRa3TozzhUrViQs4e6"></script>
-    
 </head>
 <body>
     <h1>Arbitrex Payment</h1>
@@ -22,13 +21,20 @@
             return data.clientId;
         }
 
+        // Function to send messages to Flutter
+        function sendMessageToFlutter(message) {
+            if (window.flutter_inappwebview) {
+                window.flutter_inappwebview.callHandler('paymentHandler', message);
+            }
+        }
+
         // PayPal button rendering and actions
         paypal.Buttons({
             createOrder: function(data, actions) {
                 return actions.order.create({
                     purchase_units: [{
                         amount: {
-                            value: '1.00'
+                            value: '15.00'
                         }
                     }]
                 });
@@ -52,17 +58,18 @@
                 
                 if (result.success) {
                     alert('Payment successful! Next billing date: ' + result.nextBillingDate);
+                    sendMessageToFlutter({ status: 'success', nextBillingDate: result.nextBillingDate });
                 } else {
                     alert('Payment failed: ' + result.error);
+                    sendMessageToFlutter({ status: 'failure', error: result.error });
                 }
             },
             onError: function(err) {
                 console.error('PayPal error:', err);
                 alert('An error occurred during the transaction.');
+                sendMessageToFlutter({ status: 'error', error: err.toString() });
             }
         }).render('#paypal-button-container');
     </script>
 </body>
 </html>
-
-
