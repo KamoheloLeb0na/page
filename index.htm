@@ -5,65 +5,167 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PayPal Integration</title>
     <script src="https://www.paypal.com/sdk/js?client-id=ASr-GgV6hNF9M_QqkXswue7HNctkVyHZscapjYTQO59AaTceomyBN8BndAmJakKRa3TozzhUrViQs4e6"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <style>
+        #paypal-button-container {
+            display: none;
+        }
+        #success-message {
+            display: none;
+        }
+
+        .montserrat name {
+            font-family: "Montserrat", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        .fields{
+            margin: 10px;
+            height: 30px;
+            border-radius: 5px;
+            border-color: teal;
+            border-width: 1px;
+            max-width: 500px;
+            min-width: 300px;
+           
+        }
+        .proceed{
+            background-color: teal;
+            color: white;
+            width: 150px;
+            height: 40px;
+            border:none;
+            border-radius: 5px;
+            font-family: Montserrat, sans-serif;
+            font-size: large;
+        
+        }
+    </style>
 </head>
-<body>
-    <h1>Arbitrex Payment</h1>
-    <h4>An amount of $1.00 will be withdrawn from your paypal/bank account</h4>
-    <div id="paypal-button-container"></div>
+<body style="font-family: Montserrat, sans-serif;">
+    <img src="./arbitrex.jpg" style="display: flex; width: 100%; height: 150px; object-fit: contain;" alt="">
+    <h4>An amount of $1.20 will be withdrawn from your PayPal/bank account</h4>
+
+    <form id="userForm">
+        <div style="display: flex; width: 100%; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="display: flex; align-items: start;flex-direction: column;">
+                <label for="name" style="font-size: large;font-weight: bold;color: teal;">Name:</label>
+                <input type="text" id="name" name="name" required class="fields">
+            </div>
+            <br>
+            <div style="display: flex; align-items: start;flex-direction: column;">
+                <label for="email" style="font-size: large;font-weight: bold;color: teal;">Email:</label>
+                <input type="email" id="email" name="email" required class="fields">
+            </div>
+            <br>
+            <button type="submit" class="proceed">Proceed</button>
+        </div>
+    </form>
+
+    <div id="paypal-button-container" style="width: 100%;display: flex;align-items: center;justify-content: center;"></div>
+    <div id="success-message">
+        <h4>Payment successful! You can now go back to your profile screen.</h4>
+    </div>
 
     <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCtXpAOWL9pQDHcJzSDoFSUvg23x2qINWM",
+            authDomain: "arbitrex-z.firebaseapp.com",
+            projectId: "arbitrex-z",
+            storageBucket: "arbitrex-z.appspot.com",
+            messagingSenderId: "23941273612",
+            appId: "1:23941273612:web:1063ae278c3f6cbf2ff629",
+            measurementId: "G-TH8DLGVVWC"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         // Replace with your server URL
         const SERVER_URL = "https://paypalserver.vercel.app";
 
-        // Function to send messages to Flutter
-        function sendMessageToFlutter(message) {
-            if (window.flutter_inappwebview) {
-                window.flutter_inappwebview.callHandler('paymentHandler', message);
-            }
-        }
+        // Form submission handler
+        document.getElementById('userForm').addEventListener('submit', function(event) {
+            event.preventDefault();
 
-        // PayPal button rendering and actions
-        paypal.Buttons({
-            createOrder: function(data, actions) {
-                return actions.order.create({
-                    purchase_units: [{
-                        amount: {
-                            value: '1.00'
-                        }
-                    }]
-                });
-            },
-            onApprove: async function(data, actions) {
-                const order = await actions.order.capture();
-                console.log('Order captured:', order);
+            // Get form values
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
 
-                // Send order ID to server for processing
-                const response = await fetch(`${SERVER_URL}/checkout`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        payment_method_nonce: order.id
-                    })
-                });
-                const result = await response.json();
-                console.log('Server response:', result);
+            // Hide form and show PayPal button
+            document.getElementById('userForm').style.display = 'none';
+            document.getElementById('paypal-button-container').style.display = 'block';
 
-                if (result.success) {
-                    alert('Payment successful! Next billing date: ' + result.nextBillingDate);
-                    sendMessageToFlutter(JSON.stringify({ status: 'success', nextBillingDate: result.nextBillingDate }));
-                } else {
-                    alert('Payment failed: ' + result.error);
-                    sendMessageToFlutter(JSON.stringify({ status: 'failure', error: result.error }));
+            // PayPal button rendering and actions
+            paypal.Buttons({
+                createOrder: function(data, actions) {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: '1.20'
+                            }
+                        }]
+                    });
+                },
+                onApprove: async function(data, actions) {
+                    const order = await actions.order.capture();
+                    console.log('Order captured:', order);
+
+                    // Send order ID to server for processing
+                    const response = await fetch(`${SERVER_URL}/checkout`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            payment_method_nonce: order.id
+                        })
+                    });
+                    const result = await response.json();
+                    console.log('Server response:', result);
+
+                    if (result.success) {
+                        alert('Payment successful!');
+
+                        // Update user balance in Firebase
+                        const userRef = db.collection('users').doc(email);
+                        db.runTransaction(async (transaction) => {
+                            const userDoc = await transaction.get(userRef);
+                            if (!userDoc.exists) {
+                                throw "User does not exist!";
+                            }
+
+                            const newBalance = 20; // Add $1.00 to balance
+                            transaction.update(userRef, { balance: newBalance });
+                        })
+                        .then(() => {
+                            console.log('User balance updated in Firebase.');
+                            // Hide PayPal button and show success message
+                            document.getElementById('paypal-button-container').style.display = 'none';
+                            document.getElementById('success-message').style.display = 'block';
+                        })
+                        .catch((error) => {
+                            console.error('Error updating user balance in Firebase:', error);
+                        });
+
+                    } else {
+                        alert('Payment failed: ' + result.error);
+                    }
+                },
+                onError: function(err) {
+                    console.error('PayPal error:', err);
+                    alert('An error occurred during the transaction.');
                 }
-            },
-            onError: function(err) {
-                console.error('PayPal error:', err);
-                alert('An error occurred during the transaction.');
-                sendMessageToFlutter(JSON.stringify({ status: 'error', error: err.toString() }));
-            }
-        }).render('#paypal-button-container');
+            }).render('#paypal-button-container');
+        });
     </script>
 </body>
 </html>
